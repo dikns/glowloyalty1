@@ -1,10 +1,14 @@
 [build]
-  publish = "."
+  publish   = "."
+  functions = "netlify/functions"
 
-# API calls → Netlify Function (from parent repo's functions folder)
+[build.environment]
+  NODE_VERSION = "20"
+
+# API calls → Netlify Function
 [[redirects]]
-  from   = "/api/*"
-  to     = "/.netlify/functions/api/:splat"
+  from  = "/api/*"
+  to    = "/.netlify/functions/api/:splat"
   status = 200
   force  = true
 
