@@ -1,0 +1,34 @@
+[build]
+  # 1. Build frontend PWA  (output → frontend/dist)
+  # 2. Build marketing website (output → website/dist)
+  # 3. Copy PWA dist into website/dist/app  so it lives at /app/*
+  command = """
+    npm install &&
+    cd frontend && npm install && npm run build && cd .. &&
+    cd website && npm install && npm run build &&
+    mkdir -p dist/app && cp -r ../frontend/dist/. dist/app/
+  """
+  publish   = "website/dist"
+  functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# API calls → Netlify Function (used by the PWA)
+[[redirects]]
+  from   = "/api/*"
+  to     = "/.netlify/functions/api/:splat"
+  status = 200
+  force  = true
+
+# PWA SPA fallback — any /app/* path not matched serves the PWA index
+[[redirects]]
+  from   = "/app/*"
+  to     = "/app/index.html"
+  status = 200
+
+# Marketing website SPA fallback
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200
