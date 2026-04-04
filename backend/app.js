@@ -540,6 +540,54 @@ app.delete('/staff/service/:id', requireStaff, async (req, res) => {
   res.json({ success: true });
 });
 
+// ── Staff Team Management ─────────────────────────────────────────────────────
+// Public: customers fetch staff list for booking
+app.get('/staff-list', async (req, res) => {
+  const { data, error } = await supabase
+    .from('users').select('id, name').eq('role', 'staff').order('name');
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+// Staff: list all staff members
+app.get('/staff/team', requireStaff, async (req, res) => {
+  const { data, error } = await supabase
+    .from('users').select('id, name, email, phone, created_at').eq('role', 'staff').order('name');
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+// Staff: add new staff member
+app.post('/staff/team', requireStaff, async (req, res) => {
+  const { name, email, phone, password } = req.body;
+  if (!name || !email || !password)
+    return res.status(400).json({ error: 'Ime, e-pošta in geslo so obvezni' });
+  try {
+    const hash = await bcrypt.hash(password, 10);
+    const { data, error } = await supabase.from('users').insert({
+      name, email, phone: phone || '', password_hash: hash, role: 'staff', qr_token: uuidv4(),
+    }).select('id, name, email, phone, created_at').single();
+    if (error) {
+      if (error.code === '23505') return res.status(409).json({ error: 'E-pošta je že v uporabi' });
+      throw error;
+    }
+    res.json(data);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Napaka strežnika' });
+  }
+});
+
+// Staff: delete staff member
+app.delete('/staff/team/:id', requireStaff, async (req, res) => {
+  if (String(req.params.id) === String(req.user.id))
+    return res.status(400).json({ error: 'Ne morete izbrisati svojega računa' });
+  const { error } = await supabase.from('users').delete()
+    .eq('id', req.params.id).eq('role', 'staff');
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true });
+});
+
 // ── Seed helper ───────────────────────────────────────────────────────────────
 async function seedStaff() {
   const { data } = await supabase.from('users').select('id').eq('role', 'staff').limit(1).single();
