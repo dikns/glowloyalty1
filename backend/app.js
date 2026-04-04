@@ -265,7 +265,7 @@ app.put('/auth/password', requireAuth, async (req, res) => {
 app.get('/staff/appointments', requireStaff, async (req, res) => {
   const { year, month } = req.query;
   let query = supabase.from('appointments')
-    .select('*').order('date').order('time');
+    .select('*, staff:staff_id(name)').order('date').order('time');
   if (year && month) {
     const y = parseInt(year), m = parseInt(month);
     const start = `${y}-${String(m).padStart(2, '0')}-01`;
@@ -275,7 +275,8 @@ app.get('/staff/appointments', requireStaff, async (req, res) => {
   }
   const { data, error } = await query;
   if (error) return res.status(500).json({ error: error.message });
-  res.json(data || []);
+  const flat = (data || []).map(({ staff, ...a }) => ({ ...a, staff_name: staff?.name || null }));
+  res.json(flat);
 });
 
 app.post('/staff/appointment', requireStaff, async (req, res) => {
