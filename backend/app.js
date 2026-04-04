@@ -265,7 +265,7 @@ app.put('/auth/password', requireAuth, async (req, res) => {
 app.get('/staff/appointments', requireStaff, async (req, res) => {
   const { year, month } = req.query;
   let query = supabase.from('appointments')
-    .select('*, staff:staff_id(name)').order('date').order('time');
+    .select('*').order('date').order('time');
   if (year && month) {
     const y = parseInt(year), m = parseInt(month);
     const start = `${y}-${String(m).padStart(2, '0')}-01`;
@@ -275,8 +275,16 @@ app.get('/staff/appointments', requireStaff, async (req, res) => {
   }
   const { data, error } = await query;
   if (error) return res.status(500).json({ error: error.message });
-  const flat = (data || []).map(({ staff, ...a }) => ({ ...a, staff_name: staff?.name || null }));
-  res.json(flat);
+  const appointments = data || [];
+  // Collect unique staff_ids and fetch their names
+  const staffIds = [...new Set(appointments.map(a => a.staff_id).filter(Boolean))];
+  let staffMap = {};
+  if (staffIds.length > 0) {
+    const { data: staffRows } = await supabase.from('users').select('id, name').in('id', staffIds);
+    (staffRows || []).forEach(s => { staffMap[s.id] = s.name; });
+  }
+  const result = appointments.map(a => ({ ...a, staff_name: staffMap[a.staff_id] || null }));
+  res.json(result);
 });
 
 app.post('/staff/appointment', requireStaff, async (req, res) => {
