@@ -371,12 +371,25 @@ app.get('/staff/blocked-times', requireStaff, async (req, res) => {
 app.post('/staff/blocked-times', requireStaff, async (req, res) => {
   const { type, weekday, date, hour_from, hour_to, label } = req.body;
   if (!type) return res.status(400).json({ error: 'type je obvezen' });
+  // For salon-wide closures, verify master admin (first staff by created_at)
+  if (type === 'salon') {
+    const { data: first } = await supabase.from('users').select('id').eq('role', 'staff').order('created_at').limit(1).single();
+    if (!first || String(first.id) !== String(req.user.id))
+      return res.status(403).json({ error: 'Samo Master Admin lahko doda zaprtje salona' });
+  }
+  // Prefix label with staff name so the frontend can show who added it
+  const storedLabel = `[${req.user.name}]${label ? ' ' + label : ''}`;
   const { data, error } = await supabase.from('blocked_times').insert({
     type, weekday: weekday ?? null, date: date || null,
-    hour_from: hour_from || null, hour_to: hour_to || null, label: label || '',
+    hour_from: hour_from || null, hour_to: hour_to || null, label: storedLabel,
   }).select().single();
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);
+});
+
+app.get('/staff/is-master', requireStaff, async (req, res) => {
+  const { data } = await supabase.from('users').select('id').eq('role', 'staff').order('created_at').limit(1).single();
+  res.json({ isMaster: data && String(data.id) === String(req.user.id) });
 });
 
 app.delete('/staff/blocked-times/:id', requireStaff, async (req, res) => {
