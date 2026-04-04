@@ -371,16 +371,20 @@ app.get('/staff/blocked-times', requireStaff, async (req, res) => {
 app.post('/staff/blocked-times', requireStaff, async (req, res) => {
   const { type, weekday, date, hour_from, hour_to, label } = req.body;
   if (!type) return res.status(400).json({ error: 'type je obvezen' });
+  const isSalonClosure = type === 'salon';
   // For salon-wide closures, verify master admin (first staff by created_at)
-  if (type === 'salon') {
+  if (isSalonClosure) {
     const { data: first } = await supabase.from('users').select('id').eq('role', 'staff').order('created_at').limit(1).single();
     if (!first || String(first.id) !== String(req.user.id))
       return res.status(403).json({ error: 'Samo Master Admin lahko doda zaprtje salona' });
   }
-  // Prefix label with staff name so the frontend can show who added it
-  const storedLabel = `[${req.user.name}]${label ? ' ' + label : ''}`;
+  // Store salon closure as type='date' with [SALON] prefix in label (avoids DB check constraint)
+  // Also prefix label with staff name so frontend can show who added it
+  const salonPrefix = isSalonClosure ? '[SALON]' : '';
+  const storedLabel = `${salonPrefix}[${req.user.name}]${label ? ' ' + label : ''}`;
+  const dbType = isSalonClosure ? 'date' : type;
   const { data, error } = await supabase.from('blocked_times').insert({
-    type, weekday: weekday ?? null, date: date || null,
+    type: dbType, weekday: weekday ?? null, date: date || null,
     hour_from: hour_from || null, hour_to: hour_to || null, label: storedLabel,
   }).select().single();
   if (error) return res.status(500).json({ error: error.message });
