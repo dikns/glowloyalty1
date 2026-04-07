@@ -90,10 +90,6 @@ export default function Login() {
           </p>
         </div>
 
-        <div className="mt-4 bg-rose-50 border border-rose-100 rounded-2xl p-4 text-center">
-          <p className="text-xs text-rose-400 font-medium mb-1">Demo osebje</p>
-          <p className="text-xs text-rose-500 font-mono">osebje@salon.si &nbsp;/&nbsp; osebje123</p>
-        </div>
       </div>
     </div>
   );
