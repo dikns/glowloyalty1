@@ -6,3 +6,4 @@
 @media(min-width:1024px){}
 .cust-topbar-brand{display:flex;align-items:center;gap:8px;flex-shrink:0}.cust-topbar-brand-name{font-size:15px;font-weight:700;color:#f43f5e}@media(min-width:1024px){.cust-topbar-brand{display:none}}
 .bg-rose-100.text-rose-700.rounded-full{white-space:nowrap}
+.hist-date{white-space:nowrap}
