@@ -192,10 +192,11 @@ app.post('/staff/customer/:id/notify', requireStaff, async (req, res) => {
     .single();
 
   // Always save message to inbox regardless of push
-  await supabase.from('customer_messages').insert({
+  const { error: msgErr } = await supabase.from('customer_messages').insert({
     customer_id: String(customerId),
     message,
   });
+  if (msgErr) console.error('customer_messages insert error:', msgErr.message);
 
   // Send push if available
   if (custSub && VAPID_READY) {
