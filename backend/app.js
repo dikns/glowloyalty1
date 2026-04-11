@@ -176,6 +176,34 @@ app.get('/staff/customer/:id/visits', requireStaff, async (req, res) => {
   res.json(flat);
 });
 
+app.post('/staff/customer/:id/notify', requireStaff, async (req, res) => {
+  const { message } = req.body;
+  if (!message) return res.status(400).json({ error: 'Sporočilo je obvezno' });
+
+  const customerId = req.params.id;
+  const { data: custSub } = await supabase
+    .from('customer_push_subscriptions')
+    .select('subscription')
+    .eq('user_id', String(customerId))
+    .single();
+
+  if (!custSub) return res.status(404).json({ error: 'Stranka nima aktivnih push obvestil' });
+
+  if (!VAPID_READY) return res.status(503).json({ error: 'Push obvestila niso konfigurirana' });
+
+  await webpush.sendNotification(
+    JSON.parse(custSub.subscription),
+    JSON.stringify({
+      title: 'Sporočilo iz salona',
+      body: message,
+      icon: '/icons/icon-192x192.png',
+      data: { url: '/customer' },
+    })
+  );
+
+  res.json({ success: true });
+});
+
 app.post('/staff/visit', requireStaff, async (req, res) => {
   const { customer_id, service, amount, notes } = req.body;
   if (!customer_id || !service) return res.status(400).json({ error: 'Stranka in storitev sta obvezni' });
