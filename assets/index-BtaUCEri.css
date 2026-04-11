@@ -8,3 +8,5 @@
 .bg-rose-100.text-rose-700.rounded-full{white-space:nowrap}
 .hist-date{white-space:nowrap}
 .cust-topbar-title-desktop{display:none}@media(min-width:1024px){.cust-topbar-title-desktop{display:block}}
+
+@keyframes ptr-spin{to{transform:rotate(360deg)}}@media(max-width:768px){html,body{overscroll-behavior-y:contain}}
