@@ -106,3 +106,16 @@ CREATE TABLE IF NOT EXISTS public.customer_push_subscriptions (
 ALTER TABLE public.customer_push_subscriptions DISABLE ROW LEVEL SECURITY;
 GRANT ALL ON public.customer_push_subscriptions TO anon, authenticated;
 GRANT USAGE, SELECT ON SEQUENCE public.customer_push_subscriptions_id_seq TO anon, authenticated;
+
+-- Customer messages inbox (messages sent from staff to customer)
+CREATE TABLE IF NOT EXISTS public.customer_messages (
+  id          BIGSERIAL PRIMARY KEY,
+  customer_id TEXT        NOT NULL,
+  message     TEXT        NOT NULL,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_customer_messages_customer ON public.customer_messages(customer_id);
+ALTER TABLE public.customer_messages DISABLE ROW LEVEL SECURITY;
+GRANT ALL ON public.customer_messages TO anon, authenticated;
+GRANT USAGE, SELECT ON SEQUENCE public.customer_messages_id_seq TO anon, authenticated;

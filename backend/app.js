@@ -191,21 +191,40 @@ app.post('/staff/customer/:id/notify', requireStaff, async (req, res) => {
     .eq('user_id', String(customerId))
     .single();
 
-  if (!custSub) return res.status(404).json({ error: 'Stranka nima aktivnih push obvestil' });
+  // Always save message to inbox regardless of push
+  await supabase.from('customer_messages').insert({
+    customer_id: String(customerId),
+    message,
+  });
 
-  if (!VAPID_READY) return res.status(503).json({ error: 'Push obvestila niso konfigurirana' });
-
-  await webpush.sendNotification(
-    JSON.parse(custSub.subscription),
-    JSON.stringify({
-      title: 'Sporočilo iz salona',
-      body: message,
-      icon: '/icons/icon-192x192.png',
-      data: { url: '/customer' },
-    })
-  );
+  // Send push if available
+  if (custSub && VAPID_READY) {
+    try {
+      await webpush.sendNotification(
+        JSON.parse(custSub.subscription),
+        JSON.stringify({
+          title: 'Sporočilo iz salona',
+          body: message,
+          icon: '/icons/icon-192x192.png',
+          data: { url: '/customer' },
+        })
+      );
+    } catch (e) {
+      console.error('Push send error:', e.message);
+    }
+  }
 
   res.json({ success: true });
+});
+
+app.get('/customer/messages', requireAuth, async (req, res) => {
+  const { data } = await supabase
+    .from('customer_messages')
+    .select('id, message, created_at')
+    .eq('customer_id', String(req.user.id))
+    .order('created_at', { ascending: false })
+    .limit(20);
+  res.json(data || []);
 });
 
 app.post('/staff/visit', requireStaff, async (req, res) => {
