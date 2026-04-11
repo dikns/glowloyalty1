@@ -155,7 +155,11 @@ app.get('/staff/customer/:id', requireStaff, async (req, res) => {
   const { data: lastVisit } = await supabase
     .from('visits').select('created_at').eq('customer_id', req.params.id)
     .order('created_at', { ascending: false }).limit(1).single();
-  res.json({ ...user, last_visit: lastVisit?.created_at || null });
+  // Check whether the customer has an active push subscription
+  const { data: custSub } = await supabase
+    .from('customer_push_subscriptions')
+    .select('id').eq('user_id', String(req.params.id)).single();
+  res.json({ ...user, last_visit: lastVisit?.created_at || null, push_subscription: !!custSub });
 });
 
 app.put('/staff/customer/:id', requireStaff, async (req, res) => {
