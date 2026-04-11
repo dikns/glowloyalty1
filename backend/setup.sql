@@ -82,3 +82,27 @@ CREATE TABLE IF NOT EXISTS public.blocked_times (
 ALTER TABLE public.blocked_times DISABLE ROW LEVEL SECURITY;
 GRANT ALL ON public.blocked_times TO anon, authenticated;
 GRANT USAGE, SELECT ON SEQUENCE public.blocked_times_id_seq TO anon, authenticated;
+
+-- Staff push subscriptions (for notifying staff)
+CREATE TABLE IF NOT EXISTS public.push_subscriptions (
+  id           BIGSERIAL PRIMARY KEY,
+  user_id      TEXT        NOT NULL UNIQUE,
+  subscription TEXT        NOT NULL,
+  created_at   TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.push_subscriptions DISABLE ROW LEVEL SECURITY;
+GRANT ALL ON public.push_subscriptions TO anon, authenticated;
+GRANT USAGE, SELECT ON SEQUENCE public.push_subscriptions_id_seq TO anon, authenticated;
+
+-- Customer push subscriptions (for notifying customers from staff portal)
+CREATE TABLE IF NOT EXISTS public.customer_push_subscriptions (
+  id           BIGSERIAL PRIMARY KEY,
+  user_id      TEXT        NOT NULL UNIQUE,
+  subscription TEXT        NOT NULL,
+  created_at   TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.customer_push_subscriptions DISABLE ROW LEVEL SECURITY;
+GRANT ALL ON public.customer_push_subscriptions TO anon, authenticated;
+GRANT USAGE, SELECT ON SEQUENCE public.customer_push_subscriptions_id_seq TO anon, authenticated;
