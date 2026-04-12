@@ -262,11 +262,11 @@ app.get('/staff/analytics', requireStaff, async (req, res) => {
   ] = await Promise.all([
     supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'customer'),
     supabase.from('visits').select('*', { count: 'exact', head: true })
-      .gte('created_at', `${today}T00:00:00`).lte('created_at', `${today}T23:59:59`),
-    supabase.from('visits').select('*', { count: 'exact', head: true }),
+      .neq('service', '__msg__').gte('created_at', `${today}T00:00:00`).lte('created_at', `${today}T23:59:59`),
+    supabase.from('visits').select('*', { count: 'exact', head: true }).neq('service', '__msg__'),
     supabase.from('users').select('points').eq('role', 'customer'),
     supabase.from('visits').select('*, customer:customer_id(name), staff:staff_id(name)')
-      .order('created_at', { ascending: false }).limit(10),
+      .neq('service', '__msg__').order('created_at', { ascending: false }).limit(10),
   ]);
   const totalPoints = (pointsRows || []).reduce((s, u) => s + (u.points || 0), 0);
   const recentVisits = (recentVisitsRaw || []).map(({ customer, staff, ...v }) => ({
