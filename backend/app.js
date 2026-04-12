@@ -210,7 +210,7 @@ app.post('/staff/customer/:id/notify', requireStaff, async (req, res) => {
           title: 'Sporočilo iz salona',
           body: message,
           icon: '/icons/icon-192x192.png',
-          data: { url: '/customer' },
+          data: { url: '/customer?tab=dashboard' },
         })
       );
       console.log('Push sent OK');
