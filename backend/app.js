@@ -180,6 +180,14 @@ app.get('/staff/customer/:id/visits', requireStaff, async (req, res) => {
   res.json(flat);
 });
 
+app.get('/staff/customer/:id/messages', requireStaff, async (req, res) => {
+  const { data } = await supabase
+    .from('visits').select('notes, created_at')
+    .eq('customer_id', req.params.id).eq('service', '__msg__')
+    .order('created_at', { ascending: false });
+  res.json((data || []).map(r => ({ message: r.notes, created_at: r.created_at })));
+});
+
 app.post('/staff/customer/:id/notify', requireStaff, async (req, res) => {
   const { message } = req.body;
   if (!message) return res.status(400).json({ error: 'Sporočilo je obvezno' });
