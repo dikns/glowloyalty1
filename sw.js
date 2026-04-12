@@ -28,7 +28,7 @@ self.addEventListener('push', (event) => {
   );
 });
 
-// Notification tapped — open / focus the app
+// Notification tapped — reload and focus the app
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const url = (event.notification.data && event.notification.data.url) || '/';
@@ -36,7 +36,8 @@ self.addEventListener('notificationclick', (event) => {
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
       for (const client of list) {
         if (client.url.includes(self.location.origin) && 'focus' in client) {
-          client.navigate(url);
+          // Post message so the app reloads itself
+          client.postMessage({ type: 'NOTIF_CLICK', url });
           return client.focus();
         }
       }
