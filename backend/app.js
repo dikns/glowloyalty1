@@ -119,7 +119,7 @@ app.get('/customer/profile', requireAuth, async (req, res) => {
 app.get('/customer/visits', requireAuth, async (req, res) => {
   const { data: visits } = await supabase
     .from('visits').select('*, staff:staff_id(name)')
-    .eq('customer_id', req.user.id).order('created_at', { ascending: false });
+    .eq('customer_id', req.user.id).neq('service', '__msg__').order('created_at', { ascending: false });
   const flat = (visits || []).map(({ staff, ...v }) => ({ ...v, staff_name: staff?.name || null }));
   res.json(flat);
 });
@@ -191,12 +191,14 @@ app.post('/staff/customer/:id/notify', requireStaff, async (req, res) => {
     .eq('user_id', String(customerId))
     .single();
 
-  // Always save message to inbox regardless of push (use RPC to bypass schema cache)
-  const { error: msgErr } = await supabase.rpc('add_customer_message', {
-    p_customer_id: String(customerId),
-    p_message: message,
+  // Save message to inbox via visits table (service='__msg__', notes=message)
+  await supabase.from('visits').insert({
+    customer_id: Number(customerId),
+    service: '__msg__',
+    notes: message,
+    amount: 0,
+    points_awarded: 0,
   });
-  if (msgErr) console.error('customer_messages insert error:', msgErr.message);
 
   // Send push if available
   if (custSub && VAPID_READY) {
@@ -219,10 +221,13 @@ app.post('/staff/customer/:id/notify', requireStaff, async (req, res) => {
 });
 
 app.get('/customer/messages', requireAuth, async (req, res) => {
-  const { data } = await supabase.rpc('get_customer_messages', {
-    p_customer_id: String(req.user.id),
-  });
-  res.json(data || []);
+  const { data } = await supabase.from('visits')
+    .select('id, notes, created_at')
+    .eq('customer_id', req.user.id)
+    .eq('service', '__msg__')
+    .order('created_at', { ascending: false })
+    .limit(5);
+  res.json((data || []).map(r => ({ id: r.id, message: r.notes, created_at: r.created_at })));
 });
 
 app.post('/staff/visit', requireStaff, async (req, res) => {
