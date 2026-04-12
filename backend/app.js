@@ -188,6 +188,49 @@ app.get('/staff/customer/:id/messages', requireStaff, async (req, res) => {
   res.json((data || []).map(r => ({ message: r.notes, created_at: r.created_at })));
 });
 
+app.post('/staff/broadcast', requireStaff, async (req, res) => {
+  const { type, message } = req.body;
+  if (!message) return res.status(400).json({ error: 'Sporočilo je obvezno' });
+
+  // Get all customers
+  const { data: customers } = await supabase
+    .from('users').select('id').eq('role', 'customer');
+  const customerIds = (customers || []).map(c => c.id);
+
+  // Store message for each customer in visits table
+  if (customerIds.length > 0) {
+    const rows = customerIds.map(id => ({
+      customer_id: id,
+      service: '__msg__',
+      notes: `[${type}] ${message}`,
+      amount: 0,
+      points_awarded: 0,
+    }));
+    await supabase.from('visits').insert(rows);
+  }
+
+  // Send push notification to all customers with subscriptions
+  const { data: subs } = await supabase
+    .from('customer_push_subscriptions').select('subscription');
+  let sent = 0;
+  if (VAPID_READY && subs && subs.length > 0) {
+    await Promise.allSettled(subs.map(async sub => {
+      try {
+        const parsed = JSON.parse(sub.subscription);
+        await webpush.sendNotification(parsed, JSON.stringify({
+          title: `GlowLoyalty – ${type}`,
+          body: message,
+          icon: '/icons/icon-192x192.png',
+          data: { url: '/customer?tab=dashboard' },
+        }));
+        sent++;
+      } catch (e) { /* ignore failed deliveries */ }
+    }));
+  }
+
+  res.json({ sent });
+});
+
 app.post('/staff/customer/:id/notify', requireStaff, async (req, res) => {
   const { message } = req.body;
   if (!message) return res.status(400).json({ error: 'Sporočilo je obvezno' });
