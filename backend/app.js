@@ -191,10 +191,10 @@ app.post('/staff/customer/:id/notify', requireStaff, async (req, res) => {
     .eq('user_id', String(customerId))
     .single();
 
-  // Always save message to inbox regardless of push
-  const { error: msgErr } = await supabase.from('customer_messages').insert({
-    customer_id: String(customerId),
-    message,
+  // Always save message to inbox regardless of push (use RPC to bypass schema cache)
+  const { error: msgErr } = await supabase.rpc('add_customer_message', {
+    p_customer_id: String(customerId),
+    p_message: message,
   });
   if (msgErr) console.error('customer_messages insert error:', msgErr.message);
 
@@ -219,12 +219,9 @@ app.post('/staff/customer/:id/notify', requireStaff, async (req, res) => {
 });
 
 app.get('/customer/messages', requireAuth, async (req, res) => {
-  const { data } = await supabase
-    .from('customer_messages')
-    .select('id, message, created_at')
-    .eq('customer_id', String(req.user.id))
-    .order('created_at', { ascending: false })
-    .limit(20);
+  const { data } = await supabase.rpc('get_customer_messages', {
+    p_customer_id: String(req.user.id),
+  });
   res.json(data || []);
 });
 
