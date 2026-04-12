@@ -201,6 +201,7 @@ app.post('/staff/customer/:id/notify', requireStaff, async (req, res) => {
   });
 
   // Send push if available
+  console.log('custSub found:', !!custSub, '| VAPID_READY:', VAPID_READY);
   if (custSub && VAPID_READY) {
     try {
       await webpush.sendNotification(
@@ -212,9 +213,12 @@ app.post('/staff/customer/:id/notify', requireStaff, async (req, res) => {
           data: { url: '/customer' },
         })
       );
+      console.log('Push sent OK');
     } catch (e) {
-      console.error('Push send error:', e.message);
+      console.error('Push send error:', e.statusCode, e.message);
     }
+  } else {
+    console.log('Push skipped - custSub:', !!custSub, 'VAPID_READY:', VAPID_READY);
   }
 
   res.json({ success: true });
